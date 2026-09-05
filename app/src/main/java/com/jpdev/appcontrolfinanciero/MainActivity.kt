@@ -4,44 +4,26 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.jpdev.appcontrolfinanciero.data.prefs.UserSettings
+import com.jpdev.appcontrolfinanciero.ui.navigation.AppNavHost
+import com.jpdev.appcontrolfinanciero.ui.theme.AccentPalette
 import com.jpdev.appcontrolfinanciero.ui.theme.AppControlFinancieroTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val application = application as AppControlFinancieroApplication
         setContent {
-            AppControlFinancieroTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+            val settings by application.settingsDataStore.settings.collectAsState(initial = UserSettings())
+            val palette = AccentPalette.entries.firstOrNull { it.name == settings.accentPalette } ?: AccentPalette.AZUL
+            val darkTheme = settings.isDarkTheme ?: isSystemInDarkTheme()
+            AppControlFinancieroTheme(accentPalette = palette, darkTheme = darkTheme) {
+                AppNavHost()
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    AppControlFinancieroTheme {
-        Greeting("Android")
     }
 }
