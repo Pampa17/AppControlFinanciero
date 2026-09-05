@@ -9,20 +9,27 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jpdev.appcontrolfinanciero.AppControlFinancieroApplication
 import com.jpdev.appcontrolfinanciero.data.local.ExpenseEntity
@@ -49,40 +56,63 @@ fun MovimientosScreen(
         }
 
         if (selectedTab == 0) {
-            LazyColumn(contentPadding = PaddingValues(Spacing.md)) {
+            LazyColumn(
+                contentPadding = PaddingValues(Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
                 items(state.incomes) { income ->
-                    Column {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Card(elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(Spacing.sm),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
                             Column {
                                 Text(income.description, style = MaterialTheme.typography.bodyLarge)
                                 Text(income.category, style = MaterialTheme.typography.bodyMedium)
                             }
-                            Text("+$${income.amount}", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "+$${income.amount}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
                         }
-                        HorizontalDivider(Modifier.padding(vertical = Spacing.xs))
                     }
                 }
             }
         } else {
-            LazyColumn(contentPadding = PaddingValues(Spacing.md)) {
+            LazyColumn(
+                contentPadding = PaddingValues(Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
                 items(state.expenses) { expense ->
-                    Column {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Card(elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(Spacing.sm),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Column {
                                 Text(expense.description, style = MaterialTheme.typography.bodyLarge)
                                 val label = ExpenseCategory.entries
                                     .firstOrNull { it.name == expense.category }?.label ?: expense.category
                                 Text(label, style = MaterialTheme.typography.bodyMedium)
                             }
-                            Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
-                                Text("-$${expense.amount}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    "-$${expense.amount}",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.error
+                                )
                                 Row {
-                                    TextButton(onClick = { onEditExpense(expense.id) }) { Text("Editar") }
-                                    TextButton(onClick = { pendingDelete = expense }) { Text("Eliminar") }
+                                    IconButton(onClick = { onEditExpense(expense.id) }) {
+                                        Icon(Icons.Filled.Edit, contentDescription = "Editar")
+                                    }
+                                    IconButton(onClick = { pendingDelete = expense }) {
+                                        Icon(Icons.Filled.Delete, contentDescription = "Eliminar")
+                                    }
                                 }
                             }
                         }
-                        HorizontalDivider(Modifier.padding(vertical = Spacing.xs))
                     }
                 }
             }

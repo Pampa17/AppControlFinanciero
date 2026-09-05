@@ -10,20 +10,27 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -118,7 +125,8 @@ fun AddEntryScreen(
                     onClick = { expenseCategoryMenuExpanded = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Categoría: ${state.expenseCategory.label}")
+                    Text("Categoría: ${state.expenseCategory.label}", modifier = Modifier.weight(1f))
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
                 }
                 DropdownMenu(
                     expanded = expenseCategoryMenuExpanded,
@@ -150,7 +158,11 @@ fun AddEntryScreen(
         )
 
         OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("Fecha: ${state.date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}")
+            Icon(Icons.Filled.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(
+                "Fecha: ${state.date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}",
+                modifier = Modifier.padding(start = Spacing.xs)
+            )
         }
 
         state.saveError?.let {
@@ -198,10 +210,13 @@ private fun VoiceMicButton(
 ) {
     Column {
         val label = when (voiceState) {
-            VoiceState.Listening -> "🎙 Escuchando..."
-            else -> "🎤 Dictar movimiento"
+            VoiceState.Listening -> "Escuchando..."
+            else -> "Dictar movimiento"
         }
-        Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(label) }
+        Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Filled.Mic, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(label, modifier = Modifier.padding(start = Spacing.xs))
+        }
         if (voiceState is VoiceState.Error) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

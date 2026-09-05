@@ -18,6 +18,7 @@ fun AppControlFinancieroTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = PoShapes,
         content = content
     )
 }

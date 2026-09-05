@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -24,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jpdev.appcontrolfinanciero.AppControlFinancieroApplication
@@ -88,18 +91,32 @@ fun DashboardScreen(
         Text("Últimos movimientos", style = MaterialTheme.typography.titleMedium)
         LazyColumn(
             contentPadding = PaddingValues(bottom = Spacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             items(state.recentExpenses) { expense ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(expense.description, style = MaterialTheme.typography.bodyMedium)
-                    Text("-$${expense.amount}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                Card(elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(expense.description, style = MaterialTheme.typography.bodyMedium)
+                        Text("-$${expense.amount}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
             items(state.recentIncomes) { income ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(income.description, style = MaterialTheme.typography.bodyMedium)
-                    Text("+$${income.amount}", style = MaterialTheme.typography.bodyMedium)
+                Card(elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(income.description, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "+$${income.amount}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
                 }
             }
         }
