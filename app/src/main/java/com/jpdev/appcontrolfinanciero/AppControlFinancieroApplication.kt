@@ -17,7 +17,7 @@ class AppControlFinancieroApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         val database = AppDatabase.getInstance(this)
-        repository = FinanceRepository(database.incomeDao(), database.expenseDao())
+        repository = FinanceRepository(database.incomeDao(), database.expenseDao(), database.categoryDao())
         settingsDataStore = SettingsDataStore(this)
         NotificationHelper.createChannel(this)
     }

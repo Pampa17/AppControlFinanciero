@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jpdev.appcontrolfinanciero.AppControlFinancieroApplication
 import com.jpdev.appcontrolfinanciero.data.local.ExpenseEntity
-import com.jpdev.appcontrolfinanciero.domain.ExpenseCategory
 import com.jpdev.appcontrolfinanciero.ui.components.ConfirmDeleteDialog
 import com.jpdev.appcontrolfinanciero.ui.components.formatMoney
 import com.jpdev.appcontrolfinanciero.ui.theme.Spacing
@@ -69,7 +68,10 @@ fun MovimientosScreen(
                         ) {
                             Column {
                                 Text(income.description, style = MaterialTheme.typography.bodyLarge)
-                                Text(income.category, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    state.incomeCategoryNames[income.categoryId] ?: "—",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             }
                             Text(
                                 "+$${income.amount.formatMoney()}",
@@ -94,9 +96,10 @@ fun MovimientosScreen(
                         ) {
                             Column {
                                 Text(expense.description, style = MaterialTheme.typography.bodyLarge)
-                                val label = ExpenseCategory.entries
-                                    .firstOrNull { it.name == expense.category }?.label ?: expense.category
-                                Text(label, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    state.expenseCategoryNames[expense.categoryId] ?: "—",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(

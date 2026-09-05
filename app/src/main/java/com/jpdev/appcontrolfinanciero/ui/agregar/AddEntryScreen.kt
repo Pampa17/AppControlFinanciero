@@ -17,12 +17,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,7 +32,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,13 +41,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jpdev.appcontrolfinanciero.AppControlFinancieroApplication
-import com.jpdev.appcontrolfinanciero.domain.ExpenseCategory
+import com.jpdev.appcontrolfinanciero.domain.EntryType
 import com.jpdev.appcontrolfinanciero.ui.components.ThousandsVisualTransformation
 import com.jpdev.appcontrolfinanciero.ui.components.formatMoney
-import com.jpdev.appcontrolfinanciero.ui.navigation.EntryType
 import com.jpdev.appcontrolfinanciero.ui.theme.Spacing
 import java.time.Instant
 import java.time.ZoneOffset
@@ -81,7 +82,9 @@ fun AddEntryScreen(
     }
 
     var showDatePicker by remember { mutableStateOf(false) }
-    var expenseCategoryMenuExpanded by remember { mutableStateOf(false) }
+    var categoryMenuExpanded by remember { mutableStateOf(false) }
+    var showNewCategoryDialog by remember { mutableStateOf(false) }
+    var newCategoryName by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier
@@ -114,36 +117,44 @@ fun AddEntryScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        if (type == EntryType.INGRESO) {
-            OutlinedTextField(
-                value = state.incomeCategory,
-                onValueChange = viewModel::updateIncomeCategory,
-                label = { Text("Categoría (beca, mesada, trabajo...)") },
-                modifier = Modifier.fillMaxWidth()
-            )
-        } else {
+        Column {
             Box {
                 OutlinedButton(
-                    onClick = { expenseCategoryMenuExpanded = true },
+                    onClick = { categoryMenuExpanded = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Categoría: ${state.expenseCategory.label}", modifier = Modifier.weight(1f))
+                    Text(
+                        "Categoría: ${state.selectedCategory?.name ?: "Selecciona una"}",
+                        modifier = Modifier.weight(1f)
+                    )
                     Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
                 }
                 DropdownMenu(
-                    expanded = expenseCategoryMenuExpanded,
-                    onDismissRequest = { expenseCategoryMenuExpanded = false }
+                    expanded = categoryMenuExpanded,
+                    onDismissRequest = { categoryMenuExpanded = false }
                 ) {
-                    ExpenseCategory.entries.forEach { category ->
+                    state.categories.forEach { category ->
                         DropdownMenuItem(
-                            text = { Text(category.label) },
+                            text = { Text(category.name) },
                             onClick = {
-                                viewModel.updateExpenseCategory(category)
-                                expenseCategoryMenuExpanded = false
+                                viewModel.updateCategory(category.id)
+                                categoryMenuExpanded = false
                             }
                         )
                     }
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text("+ Nueva categoría") },
+                        onClick = {
+                            categoryMenuExpanded = false
+                            newCategoryName = ""
+                            showNewCategoryDialog = true
+                        }
+                    )
                 }
+            }
+            state.categoryError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         }
 
@@ -202,6 +213,33 @@ fun AddEntryScreen(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+
+    if (showNewCategoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewCategoryDialog = false },
+            title = { Text("Nueva categoría") },
+            text = {
+                OutlinedTextField(
+                    value = newCategoryName,
+                    onValueChange = { newCategoryName = it },
+                    label = { Text("Nombre") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = newCategoryName.isNotBlank(),
+                    onClick = {
+                        viewModel.addAndSelectCategory(newCategoryName)
+                        showNewCategoryDialog = false
+                    }
+                ) { Text("Crear") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNewCategoryDialog = false }) { Text("Cancelar") }
+            }
+        )
     }
 }
 

@@ -8,13 +8,13 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.jpdev.appcontrolfinanciero.AppControlFinancieroApplication
 import com.jpdev.appcontrolfinanciero.data.AddExpenseResult
 import com.jpdev.appcontrolfinanciero.data.FinanceRepository
+import com.jpdev.appcontrolfinanciero.data.local.CategoryEntity
 import com.jpdev.appcontrolfinanciero.data.prefs.SettingsDataStore
 import com.jpdev.appcontrolfinanciero.domain.BalanceStatus
 import com.jpdev.appcontrolfinanciero.domain.BudgetCalculator
-import com.jpdev.appcontrolfinanciero.domain.ExpenseCategory
+import com.jpdev.appcontrolfinanciero.domain.EntryType
 import com.jpdev.appcontrolfinanciero.domain.VoiceParser
 import com.jpdev.appcontrolfinanciero.notifications.NotificationHelper
-import com.jpdev.appcontrolfinanciero.ui.navigation.EntryType
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,20 +26,22 @@ data class AddEntryUiState(
     val type: EntryType,
     val isEditing: Boolean = false,
     val description: String = "",
-    val incomeCategory: String = "",
-    val expenseCategory: ExpenseCategory = ExpenseCategory.OTRO,
+    val categories: List<CategoryEntity> = emptyList(),
+    val categoryId: Long? = null,
     val amountText: String = "",
     val date: LocalDate = LocalDate.now(),
     val descriptionError: String? = null,
     val amountError: String? = null,
+    val categoryError: String? = null,
     val saveError: String? = null,
     val maxAllowed: Long? = null,
     val saved: Boolean = false
 ) {
+    val selectedCategory: CategoryEntity? get() = categories.firstOrNull { it.id == categoryId }
     val isAmountValid: Boolean get() = amountText.toLongOrNull()?.let { it > 0 } == true
     val canSave: Boolean
         get() {
-            if (description.isBlank() || !isAmountValid) return false
+            if (description.isBlank() || !isAmountValid || categoryId == null) return false
             if (type == EntryType.EGRESO) {
                 val amount = amountText.toLongOrNull() ?: return false
                 val max = maxAllowed ?: return true // not loaded yet, allow attempt (repo re-validates anyway)
@@ -69,13 +71,18 @@ class AddEntryViewModel(
 
     init {
         viewModelScope.launch {
+            repository.observeCategories(type).collect { categories ->
+                _uiState.value = _uiState.value.copy(categories = categories)
+            }
+        }
+        viewModelScope.launch {
             if (_uiState.value.isEditing) {
                 val expense = repository.getExpenseById(editId!!)
                 if (expense != null) {
                     originalAmount = expense.amount
                     _uiState.value = _uiState.value.copy(
                         description = expense.description,
-                        expenseCategory = ExpenseCategory.entries.firstOrNull { it.name == expense.category } ?: ExpenseCategory.OTRO,
+                        categoryId = expense.categoryId,
                         amountText = expense.amount.toString(),
                         date = LocalDate.ofEpochDay(expense.date)
                     )
@@ -98,12 +105,17 @@ class AddEntryViewModel(
         _uiState.value = _uiState.value.copy(description = value, descriptionError = null)
     }
 
-    fun updateIncomeCategory(value: String) {
-        _uiState.value = _uiState.value.copy(incomeCategory = value)
+    fun updateCategory(id: Long) {
+        _uiState.value = _uiState.value.copy(categoryId = id, categoryError = null)
     }
 
-    fun updateExpenseCategory(value: ExpenseCategory) {
-        _uiState.value = _uiState.value.copy(expenseCategory = value)
+    /** Creates the category and selects it immediately — the inline "+ Nueva categoría" flow. */
+    fun addAndSelectCategory(name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            val id = repository.addCategory(name, _uiState.value.type)
+            _uiState.value = _uiState.value.copy(categoryId = id, categoryError = null)
+        }
     }
 
     fun updateAmountText(value: String) {
@@ -120,10 +132,14 @@ class AddEntryViewModel(
 
     fun consumeVoiceResult(text: String) {
         val parsed = VoiceParser.parse(text)
-        _uiState.value = _uiState.value.copy(
-            description = parsed.description.ifBlank { _uiState.value.description },
-            amountText = parsed.amount?.toString() ?: _uiState.value.amountText,
-            expenseCategory = parsed.category ?: _uiState.value.expenseCategory
+        val state = _uiState.value
+        val matchedCategoryId = parsed.categoryName
+            ?.let { name -> state.categories.firstOrNull { it.name.equals(name, ignoreCase = true) } }
+            ?.id
+        _uiState.value = state.copy(
+            description = parsed.description.ifBlank { state.description },
+            amountText = parsed.amount?.toString() ?: state.amountText,
+            categoryId = matchedCategoryId ?: state.categoryId
         )
         voiceController.reset()
     }
@@ -139,18 +155,22 @@ class AddEntryViewModel(
             _uiState.value = state.copy(amountError = "Ingresa un monto mayor a cero")
             return
         }
+        if (state.categoryId == null) {
+            _uiState.value = state.copy(categoryError = "Selecciona una categoría")
+            return
+        }
 
         viewModelScope.launch {
             if (state.type == EntryType.INGRESO) {
-                repository.addIncome(state.description, state.incomeCategory.ifBlank { "Otro" }, amount, state.date)
+                repository.addIncome(state.description, state.categoryId, amount, state.date)
                 _uiState.value = _uiState.value.copy(saved = true)
                 return@launch
             }
 
             val result = if (state.isEditing) {
-                repository.updateExpense(editId!!, state.description, state.expenseCategory.name, amount, state.date)
+                repository.updateExpense(editId!!, state.description, state.categoryId, amount, state.date)
             } else {
-                repository.addExpense(state.description, state.expenseCategory.name, amount, state.date)
+                repository.addExpense(state.description, state.categoryId, amount, state.date)
             }
 
             when (result) {

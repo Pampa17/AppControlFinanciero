@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class ExpenseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val description: String,
-    val category: String, // name of domain.ExpenseCategory
+    val categoryId: Long,
     val amount: Long,
     val date: Long // epoch day, see java.time.LocalDate.toEpochDay()
 )

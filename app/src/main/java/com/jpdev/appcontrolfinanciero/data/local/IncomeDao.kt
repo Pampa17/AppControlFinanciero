@@ -15,4 +15,10 @@ interface IncomeDao {
 
     @Query("SELECT * FROM incomes WHERE date BETWEEN :start AND :end")
     suspend fun getByDateRange(start: Long, end: Long): List<IncomeEntity>
+
+    @Query("SELECT COUNT(*) FROM incomes WHERE categoryId = :categoryId")
+    suspend fun countByCategory(categoryId: Long): Int
+
+    @Query("UPDATE incomes SET categoryId = :newCategoryId WHERE categoryId = :oldCategoryId")
+    suspend fun reassignCategory(oldCategoryId: Long, newCategoryId: Long)
 }

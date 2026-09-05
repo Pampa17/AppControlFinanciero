@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class IncomeEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val description: String,
-    val category: String,
+    val categoryId: Long,
     val amount: Long,
     val date: Long // epoch day, see java.time.LocalDate.toEpochDay()
 )

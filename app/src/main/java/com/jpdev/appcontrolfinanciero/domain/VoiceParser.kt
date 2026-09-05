@@ -3,7 +3,7 @@ package com.jpdev.appcontrolfinanciero.domain
 data class VoiceParseResult(
     val description: String,
     val amount: Long?,
-    val category: ExpenseCategory?
+    val categoryName: String?
 )
 
 /**
@@ -14,6 +14,11 @@ data class VoiceParseResult(
  * patterns for the small set of Spanish number words below. Compound amounts like
  * "dos millones quinientos mil" are not parsed. Acceptable ceiling for the exam's example
  * phrases; upgrade path is a proper Spanish numeral parser if graders test harder phrases.
+ *
+ * Category matching is against the default expense seed keywords only — if the user renamed
+ * or deleted a default category, voice won't preselect it (they still pick manually). Matching
+ * against live user-created categories would need DB access here, which would break this
+ * class's "pure Kotlin, unit-testable" property for a rarely-hit case.
  */
 object VoiceParser {
 
@@ -36,11 +41,11 @@ object VoiceParser {
     fun parse(rawText: String): VoiceParseResult {
         val text = rawText.trim().lowercase()
         val amount = extractAmount(text)
-        val category = ExpenseCategory.entries.firstOrNull { cat ->
-            cat.keywords.any { keyword -> text.contains(keyword) }
+        val category = CategorySeeds.EXPENSE.firstOrNull { seed ->
+            seed.keywords.any { keyword -> text.contains(keyword) }
         }
         val description = buildDescription(text, category)
-        return VoiceParseResult(description = description, amount = amount, category = category)
+        return VoiceParseResult(description = description, amount = amount, categoryName = category?.name)
     }
 
     private fun extractAmount(text: String): Long? {
@@ -68,12 +73,12 @@ object VoiceParser {
         return null
     }
 
-    private fun buildDescription(text: String, category: ExpenseCategory?): String {
+    private fun buildDescription(text: String, category: CategorySeeds.Seed?): String {
         val cleaned = text
             .replace(digitAmountRegex, "")
             .split(" ")
             .filter { it.isNotBlank() && it !in fillerWords && it != "mil" && !it.startsWith("millon") }
             .joinToString(" ")
-        return cleaned.ifBlank { category?.label ?: "" }
+        return cleaned.ifBlank { category?.name ?: "" }
     }
 }

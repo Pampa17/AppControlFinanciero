@@ -32,7 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jpdev.appcontrolfinanciero.AppControlFinancieroApplication
 import com.jpdev.appcontrolfinanciero.ui.components.BalanceCard
 import com.jpdev.appcontrolfinanciero.ui.components.formatMoney
-import com.jpdev.appcontrolfinanciero.ui.navigation.EntryType
+import com.jpdev.appcontrolfinanciero.domain.EntryType
 import com.jpdev.appcontrolfinanciero.ui.theme.Spacing
 
 @Composable

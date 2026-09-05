@@ -3,8 +3,8 @@ package com.jpdev.appcontrolfinanciero.ui.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -22,8 +22,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.jpdev.appcontrolfinanciero.domain.EntryType
 import com.jpdev.appcontrolfinanciero.ui.agregar.AddEntryScreen
 import com.jpdev.appcontrolfinanciero.ui.ajustes.SettingsScreen
+import com.jpdev.appcontrolfinanciero.ui.categorias.CategoriasScreen
 import com.jpdev.appcontrolfinanciero.ui.dashboard.DashboardScreen
 import com.jpdev.appcontrolfinanciero.ui.movimientos.MovimientosScreen
 
@@ -31,10 +33,12 @@ private data class BottomNavItem(val route: String, val label: String, val icon:
 
 // Po's "icon + label always visible" requirement, met with material icons (already resolved
 // via material3/navigation-compose — no new dependency needed).
+// "Agregar" was dropped from here: redundant with the quick-add buttons on Dashboard, and the
+// slot is more useful as "Categorías" (breakdown of money per category, the actual new ask).
 private val bottomNavItems = listOf(
     BottomNavItem(Screen.Dashboard.route, "Inicio", Icons.Filled.Home),
     BottomNavItem(Screen.Movimientos.route, "Movimientos", Icons.AutoMirrored.Filled.List),
-    BottomNavItem(Screen.Agregar.routeFor(EntryType.EGRESO), "Agregar", Icons.Filled.Add),
+    BottomNavItem(Screen.Categorias.route, "Categorías", Icons.Filled.PieChart),
     BottomNavItem(Screen.Ajustes.route, "Ajustes", Icons.Filled.Settings)
 )
 
@@ -48,18 +52,9 @@ fun AppNavHost() {
         bottomBar = {
             NavigationBar {
                 bottomNavItems.forEach { item ->
-                    val isAgregarTab = item.route.startsWith("agregar")
-                    val selected = if (isAgregarTab) currentRoute?.startsWith("agregar") == true else currentRoute == item.route
                     NavigationBarItem(
-                        selected = selected,
+                        selected = currentRoute == item.route,
                         onClick = {
-                            // ponytail: no saveState/restoreState here — Agregar carries a required
-                            // (non-default) `type` arg and is reached by a plain push from Dashboard/
-                            // Movimientos, not the singleTop tab switch below. That combo makes
-                            // NavController's save/restore bookkeeping silently no-op navigate() while
-                            // Agregar is on top (reproduced on-device: onClick fires, navigate() returns,
-                            // back stack is untouched) — the reported "Inicio button does nothing" bug.
-                            // Plain popUpTo+launchSingleTop pops back to the tab correctly.
                             navController.navigate(item.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { inclusive = false }
                                 launchSingleTop = true
@@ -86,6 +81,9 @@ fun AppNavHost() {
                 MovimientosScreen(
                     onEditExpense = { id -> navController.navigate(Screen.Agregar.routeFor(EntryType.EGRESO, id)) }
                 )
+            }
+            composable(Screen.Categorias.route) {
+                CategoriasScreen()
             }
             composable(Screen.Ajustes.route) {
                 SettingsScreen()

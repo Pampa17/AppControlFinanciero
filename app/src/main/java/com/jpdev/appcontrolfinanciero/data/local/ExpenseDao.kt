@@ -26,4 +26,10 @@ interface ExpenseDao {
 
     @Query("SELECT * FROM expenses WHERE id = :id")
     suspend fun getById(id: Long): ExpenseEntity?
+
+    @Query("SELECT COUNT(*) FROM expenses WHERE categoryId = :categoryId")
+    suspend fun countByCategory(categoryId: Long): Int
+
+    @Query("UPDATE expenses SET categoryId = :newCategoryId WHERE categoryId = :oldCategoryId")
+    suspend fun reassignCategory(oldCategoryId: Long, newCategoryId: Long)
 }
