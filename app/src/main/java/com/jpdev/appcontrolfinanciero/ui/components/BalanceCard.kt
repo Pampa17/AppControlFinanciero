@@ -43,12 +43,12 @@ fun BalanceCard(
                 color = MaterialTheme.colorScheme.onPrimary
             )
             Text(
-                text = "$$balance",
+                text = "$${balance.formatMoney()}",
                 style = MaterialTheme.typography.displayLarge,
                 color = MaterialTheme.colorScheme.onPrimary
             )
             Text(
-                text = "Ingresos: $$totalIncome · Egresos: $$totalExpenses",
+                text = "Ingresos: $${totalIncome.formatMoney()} · Egresos: $${totalExpenses.formatMoney()}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimary
             )

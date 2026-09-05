@@ -44,6 +44,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jpdev.appcontrolfinanciero.AppControlFinancieroApplication
 import com.jpdev.appcontrolfinanciero.domain.ExpenseCategory
+import com.jpdev.appcontrolfinanciero.ui.components.ThousandsVisualTransformation
+import com.jpdev.appcontrolfinanciero.ui.components.formatMoney
 import com.jpdev.appcontrolfinanciero.ui.navigation.EntryType
 import com.jpdev.appcontrolfinanciero.ui.theme.Spacing
 import java.time.Instant
@@ -150,9 +152,10 @@ fun AddEntryScreen(
             onValueChange = viewModel::updateAmountText,
             label = { Text("Monto") },
             isError = state.amountError != null,
+            visualTransformation = ThousandsVisualTransformation,
             supportingText = {
                 state.amountError?.let { Text(it) }
-                    ?: state.maxAllowed?.takeIf { type == EntryType.EGRESO }?.let { Text("Monto máximo permitido: $$it") }
+                    ?: state.maxAllowed?.takeIf { type == EntryType.EGRESO }?.let { Text("Monto máximo permitido: $${it.formatMoney()}") }
             },
             modifier = Modifier.fillMaxWidth()
         )

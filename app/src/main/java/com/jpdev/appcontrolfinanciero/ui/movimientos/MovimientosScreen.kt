@@ -35,6 +35,7 @@ import com.jpdev.appcontrolfinanciero.AppControlFinancieroApplication
 import com.jpdev.appcontrolfinanciero.data.local.ExpenseEntity
 import com.jpdev.appcontrolfinanciero.domain.ExpenseCategory
 import com.jpdev.appcontrolfinanciero.ui.components.ConfirmDeleteDialog
+import com.jpdev.appcontrolfinanciero.ui.components.formatMoney
 import com.jpdev.appcontrolfinanciero.ui.theme.Spacing
 
 @Composable
@@ -71,7 +72,7 @@ fun MovimientosScreen(
                                 Text(income.category, style = MaterialTheme.typography.bodyMedium)
                             }
                             Text(
-                                "+$${income.amount}",
+                                "+$${income.amount.formatMoney()}",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.secondary
                             )
@@ -99,7 +100,7 @@ fun MovimientosScreen(
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    "-$${expense.amount}",
+                                    "-$${expense.amount.formatMoney()}",
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.error
                                 )

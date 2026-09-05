@@ -31,6 +31,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jpdev.appcontrolfinanciero.AppControlFinancieroApplication
 import com.jpdev.appcontrolfinanciero.ui.components.BalanceCard
+import com.jpdev.appcontrolfinanciero.ui.components.formatMoney
 import com.jpdev.appcontrolfinanciero.ui.navigation.EntryType
 import com.jpdev.appcontrolfinanciero.ui.theme.Spacing
 
@@ -100,7 +101,7 @@ fun DashboardScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(expense.description, style = MaterialTheme.typography.bodyMedium)
-                        Text("-$${expense.amount}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                        Text("-$${expense.amount.formatMoney()}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
@@ -112,7 +113,7 @@ fun DashboardScreen(
                     ) {
                         Text(income.description, style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            "+$${income.amount}",
+                            "+$${income.amount.formatMoney()}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.secondary
                         )

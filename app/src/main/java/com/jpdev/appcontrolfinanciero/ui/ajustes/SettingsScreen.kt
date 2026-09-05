@@ -17,8 +17,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -80,23 +84,33 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             }
         }
 
+        // ponytail: `settings.*` round-trips through DataStore on every keystroke, so binding a
+        // field's value straight to it races the disk write and resets the cursor to the end of
+        // whatever stale value lands next (looked like typing backwards). Each field keeps its
+        // own local echo, adopted once from the store on first load, then left alone.
+        var alias by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(settings.userAlias) { if (alias == null) alias = settings.userAlias }
         OutlinedTextField(
-            value = settings.userAlias,
-            onValueChange = { viewModel.setUserAlias(it) },
+            value = alias ?: "",
+            onValueChange = { alias = it; viewModel.setUserAlias(it) },
             label = { Text("Tu nombre o alias") },
             modifier = Modifier.fillMaxWidth()
         )
 
         Text("Mes activo", style = MaterialTheme.typography.titleMedium)
+        var monthLabel by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(settings.activeMonthLabel) { if (monthLabel == null) monthLabel = settings.activeMonthLabel }
         OutlinedTextField(
-            value = settings.activeMonthLabel,
-            onValueChange = { viewModel.setActiveMonth(it, settings.activeMonthEmoji) },
+            value = monthLabel ?: "",
+            onValueChange = { monthLabel = it; viewModel.setActiveMonth(it, settings.activeMonthEmoji) },
             label = { Text("Nombre del mes (ej. Mes del viaje)") },
             modifier = Modifier.fillMaxWidth()
         )
+        var monthEmoji by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(settings.activeMonthEmoji) { if (monthEmoji == null) monthEmoji = settings.activeMonthEmoji }
         OutlinedTextField(
-            value = settings.activeMonthEmoji,
-            onValueChange = { viewModel.setActiveMonth(settings.activeMonthLabel, it) },
+            value = monthEmoji ?: "",
+            onValueChange = { monthEmoji = it; viewModel.setActiveMonth(settings.activeMonthLabel, it) },
             label = { Text("Emoji del mes") },
             modifier = Modifier.fillMaxWidth()
         )
