@@ -1,24 +1,23 @@
 package com.jpdev.appcontrolfinanciero.ui.categorias
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SecondaryTabRow
@@ -35,6 +34,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -45,6 +46,10 @@ import com.jpdev.appcontrolfinanciero.ui.components.formatMoney
 import com.jpdev.appcontrolfinanciero.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
+/** One color per slice, spread evenly around the hue wheel — works for any category count. */
+private fun sliceColor(index: Int, count: Int): Color =
+    Color.hsv((index * 360f / count.coerceAtLeast(1)) % 360f, 0.55f, 0.85f)
+
 @Composable
 fun CategoriasScreen(modifier: Modifier = Modifier) {
     val application = LocalContext.current.applicationContext as AppControlFinancieroApplication
@@ -54,10 +59,13 @@ fun CategoriasScreen(modifier: Modifier = Modifier) {
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val currentType = if (selectedTab == 0) EntryType.INGRESO else EntryType.EGRESO
-    val currentTotals = if (selectedTab == 0) state.incomeTotals else state.expenseTotals
+    // Categories with $0 this month add nothing to a pie slice — shown once they have movements.
+    val currentTotals = (if (selectedTab == 0) state.incomeTotals else state.expenseTotals).filter { it.total > 0 }
+    val grandTotal = currentTotals.sumOf { it.total }
 
     var showNewCategoryDialog by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
+    var actionTarget by remember { mutableStateOf<CategoryTotal?>(null) }
     var renaming by remember { mutableStateOf<CategoryTotal?>(null) }
     var renameText by remember { mutableStateOf("") }
     var pendingDelete by remember { mutableStateOf<CategoryTotal?>(null) }
@@ -76,37 +84,42 @@ fun CategoriasScreen(modifier: Modifier = Modifier) {
             Text("+ Nueva categoría")
         }
 
-        LazyColumn(
-            contentPadding = PaddingValues(horizontal = Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
-            items(currentTotals, key = { it.id }) { category ->
-                Card(elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+        if (currentTotals.isEmpty()) {
+            Text(
+                "Sin movimientos este mes",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(Spacing.md)
+            )
+        } else {
+            LazyColumn(contentPadding = PaddingValues(horizontal = Spacing.md)) {
+                item {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CategoryPieChart(
+                            totals = currentTotals,
+                            modifier = Modifier.padding(vertical = Spacing.md)
+                        )
+                    }
+                }
+                itemsIndexed(currentTotals, key = { _, item -> item.id }) { index, category ->
+                    val percent = (category.total * 100 / grandTotal).toInt()
                     Row(
-                        Modifier.fillMaxWidth().padding(Spacing.sm),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { actionTarget = category }
+                            .padding(vertical = Spacing.xs),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(category.name, style = MaterialTheme.typography.bodyLarge)
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("$${category.total.formatMoney()}", style = MaterialTheme.typography.bodyLarge)
-                            if (!category.isReserved) {
-                                IconButton(onClick = {
-                                    renaming = category
-                                    renameText = category.name
-                                }) {
-                                    Icon(Icons.Filled.Edit, contentDescription = "Renombrar")
-                                }
-                                IconButton(onClick = {
-                                    scope.launch {
-                                        pendingDeleteUsage = viewModel.countUsage(category.id, currentType)
-                                        pendingDelete = category
-                                    }
-                                }) {
-                                    Icon(Icons.Filled.Delete, contentDescription = "Eliminar")
-                                }
-                            }
+                            Box(
+                                Modifier
+                                    .size(14.dp)
+                                    .clip(CircleShape)
+                                    .background(sliceColor(index, currentTotals.size))
+                            )
+                            Text(category.name, modifier = Modifier.padding(start = Spacing.xs))
                         }
+                        Text("$${category.total.formatMoney()} · $percent%", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -136,6 +149,37 @@ fun CategoriasScreen(modifier: Modifier = Modifier) {
             },
             dismissButton = {
                 TextButton(onClick = { showNewCategoryDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    // Tapping a slice's legend row opens this chooser instead of always-visible edit/delete icons.
+    actionTarget?.let { category ->
+        AlertDialog(
+            onDismissRequest = { actionTarget = null },
+            title = { Text(category.name) },
+            text = { Text("$${category.total.formatMoney()} este mes") },
+            confirmButton = {
+                TextButton(onClick = {
+                    renaming = category
+                    renameText = category.name
+                    actionTarget = null
+                }) { Text("Renombrar") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        onClick = {
+                            actionTarget = null
+                            scope.launch {
+                                pendingDeleteUsage = viewModel.countUsage(category.id, currentType)
+                                pendingDelete = category
+                            }
+                        }
+                    ) { Text("Eliminar") }
+                    TextButton(onClick = { actionTarget = null }) { Text("Cerrar") }
+                }
             }
         )
     }
@@ -194,5 +238,23 @@ fun CategoriasScreen(modifier: Modifier = Modifier) {
                 TextButton(onClick = { pendingDelete = null }) { Text("Cancelar") }
             }
         )
+    }
+}
+
+@Composable
+private fun CategoryPieChart(totals: List<CategoryTotal>, modifier: Modifier = Modifier) {
+    val total = totals.sumOf { it.total }.toFloat()
+    Canvas(modifier = modifier.size(200.dp)) {
+        var startAngle = -90f
+        totals.forEachIndexed { index, category ->
+            val sweep = 360f * category.total / total
+            drawArc(
+                color = sliceColor(index, totals.size),
+                startAngle = startAngle,
+                sweepAngle = sweep,
+                useCenter = true
+            )
+            startAngle += sweep
+        }
     }
 }

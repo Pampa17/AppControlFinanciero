@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -34,6 +35,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jpdev.appcontrolfinanciero.AppControlFinancieroApplication
 import com.jpdev.appcontrolfinanciero.ui.theme.AccentPalette
 import com.jpdev.appcontrolfinanciero.ui.theme.Spacing
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.delay
 
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
@@ -84,35 +87,59 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             }
         }
 
-        // ponytail: `settings.*` round-trips through DataStore on every keystroke, so binding a
-        // field's value straight to it races the disk write and resets the cursor to the end of
-        // whatever stale value lands next (looked like typing backwards). Each field keeps its
-        // own local echo, adopted once from the store on first load, then left alone.
-        var alias by remember { mutableStateOf<String?>(null) }
-        LaunchedEffect(settings.userAlias) { if (alias == null) alias = settings.userAlias }
+        // Theme switch/palette above apply instantly (single taps, no "draft" to confirm).
+        // Text fields below are explicit-save: typing only edits a local draft, nothing persists
+        // until Guardar — avoids both the old per-keystroke DataStore race and the "does this
+        // even save?" feeling of fields with no confirmation.
+        var aliasDraft by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(settings.userAlias) { if (aliasDraft == null) aliasDraft = settings.userAlias }
+        var aliasSaved by remember { mutableStateOf(false) }
+        LaunchedEffect(aliasSaved) { if (aliasSaved) { delay(1500.milliseconds); aliasSaved = false } }
+
         OutlinedTextField(
-            value = alias ?: "",
-            onValueChange = { alias = it; viewModel.setUserAlias(it) },
+            value = aliasDraft ?: "",
+            onValueChange = { aliasDraft = it; aliasSaved = false },
             label = { Text("Tu nombre o alias") },
             modifier = Modifier.fillMaxWidth()
         )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Button(
+                onClick = { viewModel.setUserAlias(aliasDraft.orEmpty()); aliasSaved = true },
+                enabled = aliasDraft != null && aliasDraft != settings.userAlias
+            ) { Text("Guardar") }
+            if (aliasSaved) Text("Guardado ✓", color = MaterialTheme.colorScheme.primary)
+        }
 
         Text("Mes activo", style = MaterialTheme.typography.titleMedium)
-        var monthLabel by remember { mutableStateOf<String?>(null) }
-        LaunchedEffect(settings.activeMonthLabel) { if (monthLabel == null) monthLabel = settings.activeMonthLabel }
+        var monthLabelDraft by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(settings.activeMonthLabel) { if (monthLabelDraft == null) monthLabelDraft = settings.activeMonthLabel }
+        var monthEmojiDraft by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(settings.activeMonthEmoji) { if (monthEmojiDraft == null) monthEmojiDraft = settings.activeMonthEmoji }
+        var monthSaved by remember { mutableStateOf(false) }
+        LaunchedEffect(monthSaved) { if (monthSaved) { delay(1500.milliseconds); monthSaved = false } }
+
         OutlinedTextField(
-            value = monthLabel ?: "",
-            onValueChange = { monthLabel = it; viewModel.setActiveMonth(it, settings.activeMonthEmoji) },
+            value = monthLabelDraft ?: "",
+            onValueChange = { monthLabelDraft = it; monthSaved = false },
             label = { Text("Nombre del mes (ej. Mes del viaje)") },
             modifier = Modifier.fillMaxWidth()
         )
-        var monthEmoji by remember { mutableStateOf<String?>(null) }
-        LaunchedEffect(settings.activeMonthEmoji) { if (monthEmoji == null) monthEmoji = settings.activeMonthEmoji }
         OutlinedTextField(
-            value = monthEmoji ?: "",
-            onValueChange = { monthEmoji = it; viewModel.setActiveMonth(settings.activeMonthLabel, it) },
+            value = monthEmojiDraft ?: "",
+            onValueChange = { monthEmojiDraft = it; monthSaved = false },
             label = { Text("Emoji del mes") },
             modifier = Modifier.fillMaxWidth()
         )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Button(
+                onClick = {
+                    viewModel.setActiveMonth(monthLabelDraft.orEmpty(), monthEmojiDraft.orEmpty())
+                    monthSaved = true
+                },
+                enabled = (monthLabelDraft != null && monthLabelDraft != settings.activeMonthLabel) ||
+                    (monthEmojiDraft != null && monthEmojiDraft != settings.activeMonthEmoji)
+            ) { Text("Guardar") }
+            if (monthSaved) Text("Guardado ✓", color = MaterialTheme.colorScheme.primary)
+        }
     }
 }

@@ -111,7 +111,7 @@ fun AddEntryScreen(
         OutlinedTextField(
             value = state.description,
             onValueChange = viewModel::updateDescription,
-            label = { Text("Descripción") },
+            label = { Text("Descripción *") },
             isError = state.descriptionError != null,
             supportingText = { state.descriptionError?.let { Text(it) } },
             modifier = Modifier.fillMaxWidth()
@@ -124,7 +124,7 @@ fun AddEntryScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        "Categoría: ${state.selectedCategory?.name ?: "Selecciona una"}",
+                        "Categoría *: ${state.selectedCategory?.name ?: "Selecciona una"}",
                         modifier = Modifier.weight(1f)
                     )
                     Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
@@ -161,7 +161,7 @@ fun AddEntryScreen(
         OutlinedTextField(
             value = state.amountText,
             onValueChange = viewModel::updateAmountText,
-            label = { Text("Monto") },
+            label = { Text("Monto *") },
             isError = state.amountError != null,
             visualTransformation = ThousandsVisualTransformation,
             supportingText = {
@@ -181,6 +181,12 @@ fun AddEntryScreen(
 
         state.saveError?.let {
             Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+        }
+
+        if (state.saveError == null) {
+            state.saveBlockedReason?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
         }
 
         Button(

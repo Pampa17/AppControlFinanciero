@@ -15,6 +15,7 @@ import com.jpdev.appcontrolfinanciero.domain.BudgetCalculator
 import com.jpdev.appcontrolfinanciero.domain.EntryType
 import com.jpdev.appcontrolfinanciero.domain.VoiceParser
 import com.jpdev.appcontrolfinanciero.notifications.NotificationHelper
+import com.jpdev.appcontrolfinanciero.ui.components.formatMoney
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,16 +40,27 @@ data class AddEntryUiState(
 ) {
     val selectedCategory: CategoryEntity? get() = categories.firstOrNull { it.id == categoryId }
     val isAmountValid: Boolean get() = amountText.toLongOrNull()?.let { it > 0 } == true
-    val canSave: Boolean
+
+    /** Human-readable reason Guardar is disabled, or null when it's enabled — drives the hint under the button. */
+    val saveBlockedReason: String?
         get() {
-            if (description.isBlank() || !isAmountValid || categoryId == null) return false
-            if (type == EntryType.EGRESO) {
-                val amount = amountText.toLongOrNull() ?: return false
-                val max = maxAllowed ?: return true // not loaded yet, allow attempt (repo re-validates anyway)
-                if (amount > max) return false
+            val missing = buildList {
+                if (description.isBlank()) add("la descripción")
+                if (categoryId == null) add("la categoría")
+                if (!isAmountValid) add("un monto mayor a cero")
             }
-            return true
+            if (missing.isNotEmpty()) return "Falta completar: ${missing.joinToString(", ")}"
+            if (type == EntryType.EGRESO) {
+                val amount = amountText.toLongOrNull()
+                val max = maxAllowed
+                if (amount != null && max != null && amount > max) {
+                    return "El monto supera tu saldo disponible (máximo $${max.formatMoney()})"
+                }
+            }
+            return null
         }
+
+    val canSave: Boolean get() = saveBlockedReason == null
 }
 
 class AddEntryViewModel(
